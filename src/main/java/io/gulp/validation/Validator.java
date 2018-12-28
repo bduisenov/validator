@@ -2,11 +2,13 @@ package io.gulp.validation;
 
 import lombok.NonNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 
@@ -86,9 +88,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      * @see #validate(String, Predicate, String)
      */
     public <U> SELF validate(Projection<T, U> projection, Predicate<U> validation, String message) {
-        String getter = projection.getName();
-
-        return validate(getter, projection, validation, message);
+        return validate(projection.getName(), projection, validation, message);
     }
 
     /**
@@ -99,9 +99,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      * @see #validate(String, Predicate, String)
      */
     public <U> SELF validate(Projection<T, U> projection, Pair<Predicate<U>, String> predicateAndMessage) {
-        String getter = projection.getName();
-
-        return validate(getter, projection, predicateAndMessage._1(), predicateAndMessage._2());
+        return validate(projection.getName(), projection, predicateAndMessage._1(), predicateAndMessage._2());
     }
 
     /**
@@ -129,9 +127,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      * @see #validate(String, Predicate, String)
      */
     public <U> SELF validateOpt(Projection<T, U> projection, Predicate<U> validation, String message) {
-        String getter = projection.getName();
-
-        return validateOpt(getter, projection, validation, message);
+        return validateOpt(projection.getName(), projection, validation, message);
     }
 
     /**
@@ -143,10 +139,8 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      * @see #validate(String, Predicate, String)
      */
     public <U> SELF validateOpt(ProjectionOpt<T, U> projection, Predicate<U> validation, String message) {
-        String getter = projection.getName();
-
         return projection.apply(getValue())
-                .map(attr -> validateOpt(getter, $_ -> attr, validation, message))
+                .map(attr -> validateOpt(projection.getName(), $_ -> attr, validation, message))
                 .orElse(self);
     }
 
@@ -191,9 +185,41 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      * @see #validate(String, U, Function)
      */
     public <U> SELF validate(Projection<T, U> projection, Function<U, List<String>> validation) {
-        String getter = projection.getName();
+        return validate(projection.getName(), projection, validation);
+    }
 
-        return validate(getter, projection, validation);
+    /**
+     *
+     * @param fieldName
+     * @param projection
+     * @param predicatesConsumer
+     * @param <U>
+     * @return
+     * @see #validate(String, U, Function)
+     */
+    public <U> SELF validate(String fieldName, Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+        Map<Predicate<U>, String> mapping = new LinkedHashMap<>();
+
+        predicatesConsumer.accept(mapping::put);
+
+        Function<U, List<String>> validation = val -> mapping.entrySet().stream()
+                .filter(el -> !el.getKey().test(val))
+                .map(Entry::getValue)
+                .collect(Collectors.toList());
+
+        return validate(fieldName, projection, validation);
+    }
+
+    /**
+     *
+     * @param projection
+     * @param predicatesConsumer
+     * @param <U>
+     * @return
+     * @see #validate(String, U, Function)
+     */
+    public <U> SELF validate(Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+        return validate(projection.getName(), projection, predicatesConsumer);
     }
 
     /**
@@ -205,9 +231,9 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      * @see #validate(String, U, Function)
      */
     public <U> SELF validateOpt(String fieldName, Function<T, U> projection, Function<U, List<String>> validation) {
-        return Optional.ofNullable(projection.apply(getValue()))
-                .map(attr -> validate(fieldName, attr, validation))
-                .orElse(self);
+        return projection.apply(getValue()) != null
+                ? validate(fieldName, projection.apply(getValue()), validation)
+                : self;
     }
 
     /**
@@ -218,9 +244,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      * @see #validate(String, U, Function)
      */
     public <U> SELF validateOpt(Projection<T, U> projection, Function<U, List<String>> validation) {
-        String getter = projection.getName();
-
-        return validateOpt(getter, projection, validation);
+        return validateOpt(projection.getName(), projection, validation);
     }
 
     /**
@@ -231,11 +255,18 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      * @see #validate(String, U, Function)
      */
     public <U> SELF validateOpt(ProjectionOpt<T, U> projection, Function<U, List<String>> validation) {
-        String getter = projection.getName();
-
         return projection.apply(getValue())
-                .map(attr -> validateOpt(getter, $_ -> attr, validation))
+                .map(attr -> validateOpt(projection.getName(), $_ -> attr, validation))
                 .orElse(self);
+    }
+
+    public <U> SELF validateOpt(String fieldName, Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+        return projection.apply(getValue()) != null
+                ? validate(fieldName, projection, predicatesConsumer)
+                : self;
+    }
+    public <U> SELF validateOpt(Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+        return validateOpt(projection.getName(), projection, predicatesConsumer);
     }
 
     public <U, V extends Validator<U, ?>> SELF validate(String fieldName, Function<T, U> projection, ValidatorFunction<U, V> validatorFunc) {
