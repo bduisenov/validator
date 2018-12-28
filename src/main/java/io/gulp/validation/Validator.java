@@ -253,6 +253,16 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return validateList(projection.getName(), projection, predicatesConsumer);
     }
 
+    public <U> SELF validateListOpt(String fieldName, Projection<T, List<U>> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+        return projection.apply(getValue()) != null
+                ? validateList(fieldName, projection, predicatesConsumer)
+                : self;
+    }
+
+    public <U> SELF validateListOpt(Projection<T, List<U>> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+        return validateListOpt(projection.getName(), projection, predicatesConsumer);
+    }
+
     public <L, R> SELF validateMap(String fieldName, Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
         Map<Predicate<Pair<L, R>>, String> mapping = new LinkedHashMap<>();
 
@@ -274,6 +284,16 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
 
     public <L, R> SELF validateMap(Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
         return validateMap(projection.getName(), projection, predicatesConsumer);
+    }
+
+    public <L, R> SELF validateMapOpt(String fieldName, Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
+        return projection.apply(getValue()) != null
+                ? validateMap(fieldName, projection, predicatesConsumer)
+                : self;
+    }
+
+    public <L, R> SELF validateMapOpt(Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
+        return validateMapOpt(projection.getName(), projection, predicatesConsumer);
     }
 
     /**
