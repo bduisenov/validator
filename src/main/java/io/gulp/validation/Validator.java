@@ -8,9 +8,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 
 /**
  * Be careful with Method::refs in conjunction with intersection types like {@code <T extends A & B>} there's a
@@ -132,6 +132,17 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
 
     /**
      * @param projection
+     * @param predicateAndMessage
+     * @param <U>
+     * @return
+     * @see #validate(String, Predicate, String)
+     */
+    public <U> SELF validateOpt(Projection<T, U> projection, Pair<Predicate<U>, String> predicateAndMessage) {
+        return validateOpt(projection.getName(), projection, predicateAndMessage._1(), predicateAndMessage._2());
+    }
+
+    /**
+     * @param projection
      * @param validation
      * @param message
      * @param <U>
@@ -189,7 +200,6 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
     }
 
     /**
-     *
      * @param fieldName
      * @param projection
      * @param predicatesConsumer
@@ -205,13 +215,12 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         Function<U, List<String>> validation = val -> mapping.entrySet().stream()
                 .filter(el -> !el.getKey().test(val))
                 .map(Entry::getValue)
-                .collect(Collectors.toList());
+                .collect(toList());
 
         return validate(fieldName, projection, validation);
     }
 
     /**
-     *
      * @param projection
      * @param predicatesConsumer
      * @param <U>
@@ -220,6 +229,51 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
      */
     public <U> SELF validate(Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
         return validate(projection.getName(), projection, predicatesConsumer);
+    }
+
+    public <U> SELF validateList(String fieldName, Projection<T, List<U>> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+        Map<Predicate<U>, String> mapping = new LinkedHashMap<>();
+
+        predicatesConsumer.accept(mapping::put);
+
+        Function<U, List<String>> validation = val -> mapping.entrySet().stream()
+                .filter(el -> !el.getKey().test(val))
+                .map(Entry::getValue)
+                .collect(toList());
+
+        Function<List<U>, List<String>> listValidation = list -> list.stream()
+                .map(validation)
+                .flatMap(List::stream)
+                .collect(toList());
+
+        return validate(fieldName, projection, listValidation);
+    }
+
+    public <U> SELF validateList(Projection<T, List<U>> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+        return validateList(projection.getName(), projection, predicatesConsumer);
+    }
+
+    public <L, R> SELF validateMap(String fieldName, Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
+        Map<Predicate<Pair<L, R>>, String> mapping = new LinkedHashMap<>();
+
+        predicatesConsumer.accept(mapping::put);
+
+        Function<Pair<L, R>, List<String>> validation = val -> mapping.entrySet().stream()
+                .filter(el -> !el.getKey().test(val))
+                .map(Entry::getValue)
+                .collect(toList());
+
+        Function<Map<L, R>, List<String>> mapValidation = map -> map.entrySet().stream()
+                .map(e -> new Pair<>(e.getKey(), e.getValue()))
+                .map(validation)
+                .flatMap(List::stream)
+                .collect(toList());
+
+        return validate(fieldName, projection, mapValidation);
+    }
+
+    public <L, R> SELF validateMap(Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
+        return validateMap(projection.getName(), projection, predicatesConsumer);
     }
 
     /**
@@ -265,6 +319,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
                 ? validate(fieldName, projection, predicatesConsumer)
                 : self;
     }
+
     public <U> SELF validateOpt(Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
         return validateOpt(projection.getName(), projection, predicatesConsumer);
     }
