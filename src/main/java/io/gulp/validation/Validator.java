@@ -344,13 +344,15 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return validateOpt(projection.getName(), projection, predicatesConsumer);
     }
 
-    public <U, V extends Validator<U, ?>> SELF validate(String fieldName, Function<T, U> projection, ValidatorFunction<U, V> validatorFunc) {
+    // MARK: NESTED VALIDATOR METHODS
+
+    public <U> SELF nest(String fieldName, Function<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
         U val = projection.apply(getValue());
 
         if (val != null) {
-            V subValidator = validatorFunc.apply(val);
-            if (!subValidator.getViolations().isEmpty()) {
-                ValidatorViolation violation = ValidatorViolation.fromViolations(fieldName, subValidator.getViolations());
+            List<ValidatorViolation> nestedViolations = nestedValidatorFunc.apply(val).getViolations();
+            if (!nestedViolations.isEmpty()) {
+                ValidatorViolation violation = ValidatorViolation.fromViolations(fieldName, nestedViolations);
                 addViolation(violation);
             }
         } else {
@@ -360,19 +362,17 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return self;
     }
 
-    public <U, V extends Validator<U, ?>> SELF validate(Projection<T, U> projection, ValidatorFunction<U, V> validatorFunc) {
-        String getter = projection.getName();
-
-        return validate(getter, projection, validatorFunc);
+    public <U> SELF nest(Projection<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
+        return nest(projection.getName(), projection, nestedValidatorFunc);
     }
 
-    public <U, V extends Validator<U, ?>> SELF validateOpt(String fieldName, Function<T, U> projection, ValidatorFunction<U, V> validatorFunc) {
+    public <U> SELF nestOpt(String fieldName, Function<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
         U val = projection.apply(getValue());
 
         if (val != null) {
-            V subValidator = validatorFunc.apply(val);
-            if (!subValidator.getViolations().isEmpty()) {
-                ValidatorViolation violation = ValidatorViolation.fromViolations(fieldName, subValidator.getViolations());
+            List<ValidatorViolation> nestedViolations = nestedValidatorFunc.apply(val).getViolations();
+            if (!nestedViolations.isEmpty()) {
+                ValidatorViolation violation = ValidatorViolation.fromViolations(fieldName, nestedViolations);
                 addViolation(violation);
             }
         }
@@ -380,17 +380,13 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return self;
     }
 
-    public <U, V extends Validator<U, ?>> SELF validateOpt(Projection<T, U> projection, ValidatorFunction<U, V> validatorFunc) {
-        String getter = projection.getName();
-
-        return validateOpt(getter, projection, validatorFunc);
+    public <U> SELF nestOpt(Projection<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
+        return nestOpt(projection.getName(), projection, nestedValidatorFunc);
     }
 
-    public <U, V extends Validator<U, ?>> SELF validateOpt(ProjectionOpt<T, U> projection, ValidatorFunction<U, V> validatorFunc) {
-        String getter = projection.getName();
-
+    public <U> SELF nestOpt(ProjectionOpt<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
         return projection.apply(getValue())
-                .map(attr -> validateOpt(getter, $_ -> attr, validatorFunc))
+                .map(attr -> nestOpt(projection.getName(), $_ -> attr, nestedValidatorFunc))
                 .orElse(self);
     }
 
