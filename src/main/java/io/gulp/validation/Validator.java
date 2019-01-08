@@ -1,15 +1,19 @@
 package io.gulp.validation;
 
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.function.BiConsumer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -202,19 +206,20 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
     /**
      * @param fieldName
      * @param projection
-     * @param predicatesConsumer
+     * @param constraintsFactoryConsumer
      * @param <U>
      * @return
      * @see #validate(String, U, Function)
      */
-    public <U> SELF validate(String fieldName, Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
-        Map<Predicate<U>, String> mapping = new LinkedHashMap<>();
+    public <U> SELF validate(String fieldName, Projection<T, U> projection, Consumer<ConstraintFactory<U>> constraintsFactoryConsumer) {
+        List<Function<U, List<String>>> constraints = new ArrayList<>();
 
-        predicatesConsumer.accept(mapping::put);
+        constraintsFactoryConsumer.accept(new InternalConstraintFactory<>(constraints));
 
-        Function<U, List<String>> validation = val -> mapping.entrySet().stream()
-                .filter(el -> !el.getKey().test(val))
-                .map(Entry::getValue)
+        Function<U, List<String>> validation = val -> constraints.stream()
+                .map(constraint -> constraint.apply(val))
+                .filter(not(List::isEmpty))
+                .flatMap(List::stream)
                 .collect(toList());
 
         return validate(fieldName, projection, validation);
@@ -222,23 +227,24 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
 
     /**
      * @param projection
-     * @param predicatesConsumer
+     * @param constraintsFactoryConsumer
      * @param <U>
      * @return
      * @see #validate(String, U, Function)
      */
-    public <U> SELF validate(Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
-        return validate(projection.getName(), projection, predicatesConsumer);
+    public <U> SELF validate(Projection<T, U> projection, Consumer<ConstraintFactory<U>> constraintsFactoryConsumer) {
+        return validate(projection.getName(), projection, constraintsFactoryConsumer);
     }
 
-    public <U> SELF validateList(String fieldName, Projection<T, List<U>> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
-        Map<Predicate<U>, String> mapping = new LinkedHashMap<>();
+    public <U> SELF validateList(String fieldName, Projection<T, List<U>> projection, Consumer<ConstraintFactory<U>> constraintsFactoryConsumer) {
+        List<Function<U, List<String>>> constraints = new ArrayList<>();
 
-        predicatesConsumer.accept(mapping::put);
+        constraintsFactoryConsumer.accept(new InternalConstraintFactory<>(constraints));
 
-        Function<U, List<String>> validation = val -> mapping.entrySet().stream()
-                .filter(el -> !el.getKey().test(val))
-                .map(Entry::getValue)
+        Function<U, List<String>> validation = val -> constraints.stream()
+                .map(constraint -> constraint.apply(val))
+                .filter(not(List::isEmpty))
+                .flatMap(List::stream)
                 .collect(toList());
 
         Function<List<U>, List<String>> listValidation = list -> list.stream()
@@ -249,28 +255,29 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return validate(fieldName, projection, listValidation);
     }
 
-    public <U> SELF validateList(Projection<T, List<U>> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
-        return validateList(projection.getName(), projection, predicatesConsumer);
+    public <U> SELF validateList(Projection<T, List<U>> projection, Consumer<ConstraintFactory<U>> constraintsFactoryConsumer) {
+        return validateList(projection.getName(), projection, constraintsFactoryConsumer);
     }
 
-    public <U> SELF validateListOpt(String fieldName, Projection<T, List<U>> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+    public <U> SELF validateListOpt(String fieldName, Projection<T, List<U>> projection, Consumer<ConstraintFactory<U>> constraintsFactoryConsumer) {
         return projection.apply(getValue()) != null
-                ? validateList(fieldName, projection, predicatesConsumer)
+                ? validateList(fieldName, projection, constraintsFactoryConsumer)
                 : self;
     }
 
-    public <U> SELF validateListOpt(Projection<T, List<U>> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
-        return validateListOpt(projection.getName(), projection, predicatesConsumer);
+    public <U> SELF validateListOpt(Projection<T, List<U>> projection, Consumer<ConstraintFactory<U>> constraintsFactoryConsumer) {
+        return validateListOpt(projection.getName(), projection, constraintsFactoryConsumer);
     }
 
-    public <L, R> SELF validateMap(String fieldName, Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
-        Map<Predicate<Pair<L, R>>, String> mapping = new LinkedHashMap<>();
+    public <L, R> SELF validateMap(String fieldName, Projection<T, Map<L, R>> projection, Consumer<ConstraintFactory<Pair<L, R>>> constraintsFactoryConsumer) {
+        List<Function<Pair<L, R>, List<String>>> constraints = new ArrayList<>();
 
-        predicatesConsumer.accept(mapping::put);
+        constraintsFactoryConsumer.accept(new InternalConstraintFactory<>(constraints));
 
-        Function<Pair<L, R>, List<String>> validation = val -> mapping.entrySet().stream()
-                .filter(el -> !el.getKey().test(val))
-                .map(Entry::getValue)
+        Function<Pair<L, R>, List<String>> validation = val -> constraints.stream()
+                .map(constraint -> constraint.apply(val))
+                .filter(not(List::isEmpty))
+                .flatMap(List::stream)
                 .collect(toList());
 
         Function<Map<L, R>, List<String>> mapValidation = map -> map.entrySet().stream()
@@ -282,18 +289,18 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return validate(fieldName, projection, mapValidation);
     }
 
-    public <L, R> SELF validateMap(Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
-        return validateMap(projection.getName(), projection, predicatesConsumer);
+    public <L, R> SELF validateMap(Projection<T, Map<L, R>> projection, Consumer<ConstraintFactory<Pair<L, R>>> constraintsFactoryConsumer) {
+        return validateMap(projection.getName(), projection, constraintsFactoryConsumer);
     }
 
-    public <L, R> SELF validateMapOpt(String fieldName, Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
+    public <L, R> SELF validateMapOpt(String fieldName, Projection<T, Map<L, R>> projection, Consumer<ConstraintFactory<Pair<L, R>>> constraintsFactoryConsumer) {
         return projection.apply(getValue()) != null
-                ? validateMap(fieldName, projection, predicatesConsumer)
+                ? validateMap(fieldName, projection, constraintsFactoryConsumer)
                 : self;
     }
 
-    public <L, R> SELF validateMapOpt(Projection<T, Map<L, R>> projection, Consumer<BiConsumer<Predicate<Pair<L, R>>, String>> predicatesConsumer) {
-        return validateMapOpt(projection.getName(), projection, predicatesConsumer);
+    public <L, R> SELF validateMapOpt(Projection<T, Map<L, R>> projection, Consumer<ConstraintFactory<Pair<L, R>>> constraintsFactoryConsumer) {
+        return validateMapOpt(projection.getName(), projection, constraintsFactoryConsumer);
     }
 
     /**
@@ -334,14 +341,14 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
                 .orElse(self);
     }
 
-    public <U> SELF validateOpt(String fieldName, Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
+    public <U> SELF validateOpt(String fieldName, Projection<T, U> projection, Consumer<ConstraintFactory<U>> constraintsFactoryConsumer) {
         return projection.apply(getValue()) != null
-                ? validate(fieldName, projection, predicatesConsumer)
+                ? validate(fieldName, projection, constraintsFactoryConsumer)
                 : self;
     }
 
-    public <U> SELF validateOpt(Projection<T, U> projection, Consumer<BiConsumer<Predicate<U>, String>> predicatesConsumer) {
-        return validateOpt(projection.getName(), projection, predicatesConsumer);
+    public <U> SELF validateOpt(Projection<T, U> projection, Consumer<ConstraintFactory<U>> constraintsFactoryConsumer) {
+        return validateOpt(projection.getName(), projection, constraintsFactoryConsumer);
     }
 
     // MARK: NESTED VALIDATOR METHODS
@@ -420,4 +427,23 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return getValue();
     }
 
+    @RequiredArgsConstructor
+    private static class InternalConstraintFactory<U> implements ConstraintFactory<U> {
+
+        private final List<Function<U, List<String>>> constraints;
+
+        @Override
+        public ConstraintFactory<U> addPredicate(Predicate<U> predicate, String message) {
+            constraints.add(val -> predicate.test(val) ? emptyList() : singletonList(message));
+
+            return this;
+        }
+
+        @Override
+        public ConstraintFactory<U> addFunction(Function<U, List<String>> validationFunction) {
+            constraints.add(validationFunction);
+
+            return this;
+        }
+    }
 }

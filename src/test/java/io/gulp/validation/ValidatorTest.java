@@ -231,16 +231,16 @@ public class ValidatorTest {
 
     @Test
     public void validate_withValidatorFunc() {
-        ValidatorFunction<String, TryValidator<String, ?>> validation = x -> TryValidator.of("");
+        Function<String, TryValidator<String, ?>> validation = x -> TryValidator.of("");
 
         Projection<Object, String> projection = x -> "";
-        Try<Object> aTry = validator.validate("test", projection, validation).get();
+        Try<Object> aTry = validator.nest("test", projection, validation).get();
         assertTrue(aTry.isSuccess());
     }
 
     @Test
     public void validate_withValidatorFuncWithNull() {
-        ValidatorFunction<Object, TryValidator<Object, ?>> validation = x -> {
+        Function<Object, TryValidator<Object, ?>> validation = x -> {
             throw new UnsupportedOperationException("should not be called because of null");
         };
 
@@ -250,7 +250,7 @@ public class ValidatorTest {
             }
         };
 
-        Try<Object> aTry = TryValidator.of(target).validate("test", Object::toString, validation).get();
+        Try<Object> aTry = TryValidator.of(target).nest("test", Object::toString, validation).get();
         assertTrue(aTry.isFailure());
         ValidatorViolation expected = ValidatorViolation.fromErrors("test", Collections.singletonList(NOT_NULL_MESSAGE));
         assertEquals(expected, ((ValidationException) aTry.getCause()).getViolations().get(0));
@@ -258,7 +258,7 @@ public class ValidatorTest {
 
     @Test
     public void validateOpt_withValidatorFuncWithNull() {
-        ValidatorFunction<Object, TryValidator<Object, ?>> validation = x -> {
+        Function<Object, TryValidator<Object, ?>> validation = x -> {
             throw new UnsupportedOperationException("should not be called because of null");
         };
 
@@ -268,28 +268,28 @@ public class ValidatorTest {
             }
         };
 
-        Try<Object> aTry = TryValidator.of(target).validateOpt("test", Object::toString, validation).get();
+        Try<Object> aTry = TryValidator.of(target).nestOpt("test", Object::toString, validation).get();
         assertTrue(aTry.isSuccess());
     }
 
     @Test
     public void validateOpt_withValidatorFunc() {
-        ValidatorFunction<Object, TryValidator<Object, ?>> validation = x -> TryValidator.of(new Object());
+        Function<Object, TryValidator<Object, ?>> validation = x -> TryValidator.of(new Object());
 
-        Try<Object> aTry = validator.validateOpt("test", Object::toString, validation).get();
+        Try<Object> aTry = validator.nestOpt("test", Object::toString, validation).get();
         assertTrue(aTry.isSuccess());
     }
 
     @Test
     public void validateOpt_withValidatorFuncFailed() {
-        ValidatorFunction<Object, TryValidator<Object, ?>> validation = x -> {
+        Function<Object, TryValidator<Object, ?>> validation = x -> {
             ValidatorViolation violation = ValidatorViolation.fromErrors("inner.field", Collections.singletonList("not valid"));
             TryValidator<Object, ?> subValidator = TryValidator.of(new Object());
             subValidator.addViolation(violation);
             return subValidator;
         };
 
-        Try<Object> aTry = validator.validateOpt("test", Object::toString, validation).get();
+        Try<Object> aTry = validator.nestOpt("test", Object::toString, validation).get();
         assertTrue(aTry.isFailure());
         List<ValidatorViolation> violations = Collections.singletonList(ValidatorViolation.fromErrors("inner.field", Collections.singletonList("not valid")));
         ValidatorViolation expected = ValidatorViolation.fromViolations("test", violations);
@@ -319,8 +319,8 @@ public class ValidatorTest {
 
     @Test
     public void validateOpt_withProjectionOpt_withValidatorFunction() {
-        ValidatorFunction<Integer, TryValidator<Integer, ?>> validation = TryValidator::of;
-        Try<TClass> aTry = TryValidator.of(new TClass()).validateOpt(TClass::get, validation).get();
+        Function<Integer, TryValidator<Integer, ?>> validation = TryValidator::of;
+        Try<TClass> aTry = TryValidator.of(new TClass()).nestOpt(TClass::get, validation).get();
         assertTrue(aTry.isSuccess());
     }
 
