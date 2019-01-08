@@ -346,7 +346,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
 
     // MARK: NESTED VALIDATOR METHODS
 
-    public <U> SELF nest(String fieldName, Function<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
+    public <U, V extends Validator<U, ?>> SELF nest(String fieldName, Function<T, U> projection, Function<U, V> nestedValidatorFunc) {
         U val = projection.apply(getValue());
 
         if (val != null) {
@@ -362,11 +362,11 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return self;
     }
 
-    public <U> SELF nest(Projection<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
+    public <U, V extends Validator<U, ?>> SELF nest(Projection<T, U> projection, Function<U, V> nestedValidatorFunc) {
         return nest(projection.getName(), projection, nestedValidatorFunc);
     }
 
-    public <U> SELF nestOpt(String fieldName, Function<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
+    public <U, V extends Validator<U, ?>> SELF nestOpt(String fieldName, Function<T, U> projection, Function<U, V> nestedValidatorFunc) {
         U val = projection.apply(getValue());
 
         if (val != null) {
@@ -380,11 +380,11 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         return self;
     }
 
-    public <U> SELF nestOpt(Projection<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
+    public <U, V extends Validator<U, ?>> SELF nestOpt(Projection<T, U> projection, Function<U, V> nestedValidatorFunc) {
         return nestOpt(projection.getName(), projection, nestedValidatorFunc);
     }
 
-    public <U> SELF nestOpt(ProjectionOpt<T, U> projection, Function<U, Validator<U, ?>> nestedValidatorFunc) {
+    public <U, V extends Validator<U, ?>> SELF nestOpt(ProjectionOpt<T, U> projection, Function<U, V> nestedValidatorFunc) {
         return projection.apply(getValue())
                 .map(attr -> nestOpt(projection.getName(), $_ -> attr, nestedValidatorFunc))
                 .orElse(self);
