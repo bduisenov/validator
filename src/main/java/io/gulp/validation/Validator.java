@@ -433,17 +433,13 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
         private final List<Function<U, List<String>>> constraints;
 
         @Override
-        public ConstraintFactory<U> addPredicate(Predicate<U> predicate, String message) {
+        public void addPredicate(Predicate<U> predicate, String message) {
             constraints.add(val -> predicate.test(val) ? emptyList() : singletonList(message));
-
-            return this;
         }
 
         @Override
-        public ConstraintFactory<U> addFunction(Function<U, List<String>> validationFunction) {
+        public void addFunction(Function<U, List<String>> validationFunction) {
             constraints.add(validationFunction);
-
-            return this;
         }
     }
 }

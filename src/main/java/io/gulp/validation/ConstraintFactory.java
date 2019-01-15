@@ -6,7 +6,7 @@ import java.util.function.Predicate;
 
 public interface ConstraintFactory<T> {
 
-    ConstraintFactory<T> addPredicate(Predicate<T> predicate, String message);
+    void addPredicate(Predicate<T> predicate, String message);
 
-    ConstraintFactory<T> addFunction(Function<T, List<String>> validationFunction);
+    void addFunction(Function<T, List<String>> validationFunction);
 }
