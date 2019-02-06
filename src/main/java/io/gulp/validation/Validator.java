@@ -13,7 +13,6 @@ import java.util.function.Predicate;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -218,7 +217,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
 
         Function<U, List<String>> validation = val -> constraints.stream()
                 .map(constraint -> constraint.apply(val))
-                .filter(not(List::isEmpty))
+                .filter(xs -> !xs.isEmpty())
                 .flatMap(List::stream)
                 .collect(toList());
 
@@ -243,7 +242,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
 
         Function<U, List<String>> validation = val -> constraints.stream()
                 .map(constraint -> constraint.apply(val))
-                .filter(not(List::isEmpty))
+                .filter(xs -> !xs.isEmpty())
                 .flatMap(List::stream)
                 .collect(toList());
 
@@ -276,7 +275,7 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
 
         Function<Pair<L, R>, List<String>> validation = val -> constraints.stream()
                 .map(constraint -> constraint.apply(val))
-                .filter(not(List::isEmpty))
+                .filter(xs -> !xs.isEmpty())
                 .flatMap(List::stream)
                 .collect(toList());
 
