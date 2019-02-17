@@ -1,4 +1,4 @@
-package io.gulp.validation;
+package com.github.bduisenov;
 
 import java.io.Serializable;
 import java.util.function.Function;

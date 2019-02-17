@@ -1,4 +1,4 @@
-package io.gulp.validation;
+package com.github.bduisenov;
 
 import java.util.List;
 import java.util.function.Function;

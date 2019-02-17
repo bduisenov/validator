@@ -1,4 +1,4 @@
-package io.gulp.validation;
+package com.github.bduisenov;
 
 public class Pair<L, R> {
 

@@ -1,4 +1,4 @@
-package io.gulp.validation;
+package com.github.bduisenov;
 
 import io.vavr.control.Try;
 import lombok.NonNull;
@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.gulp.validation.Validator.NOT_NULL_MESSAGE;
+import static com.github.bduisenov.Validator.NOT_NULL_MESSAGE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
