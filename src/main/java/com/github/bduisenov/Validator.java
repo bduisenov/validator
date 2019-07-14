@@ -396,6 +396,16 @@ public class Validator<T, SELF extends Validator<T, SELF>> {
                 .orElse(self);
     }
 
+    // MARK: CONDITIONAL VALIDATION
+
+    public SELF validateWhen(Predicate<T> predicate, Consumer<SELF> validatorConsumer) {
+        if (predicate.test(getValue())) {
+            validatorConsumer.accept(self);
+        }
+
+        return self;
+    }
+
     protected T getValue() {
         return value;
     }
