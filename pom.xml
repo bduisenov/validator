@@ -5,7 +5,7 @@
 
     <groupId>com.github.bduisenov</groupId>
     <artifactId>validator</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.3</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>A library for functional validation</description>
@@ -38,7 +38,7 @@
         <connection>scm:git:https://github.com/bduisenov/validator.git</connection>
         <developerConnection>scm:git:git@github.com:bduisenov/validator.git</developerConnection>
         <url>https://github.com/bduisenov/validator</url>
-        <tag>HEAD</tag>
+        <tag>validator-0.0.3</tag>
     </scm>
 
     <issueManagement>
